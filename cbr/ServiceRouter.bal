@@ -23,6 +23,8 @@ service<http> inventoryUpdate {
         error castErr;
         brand, castErr = (string)request["brand"];
 
+        route(brand);
+
         if (castErr == null) {
             io:println("Brand value: " + brand);
         } else {
