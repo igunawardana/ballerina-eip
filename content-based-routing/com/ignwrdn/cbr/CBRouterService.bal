@@ -1,5 +1,8 @@
+package com.ignwrdn.cbr;
+
 import ballerina.net.http;
 import ballerina.io;
+import com.ignwrdn.rule;
 
 @http:configuration {basePath:"/ims", port:8890}
 service<http> inventoryUpdate {
@@ -9,45 +12,38 @@ service<http> inventoryUpdate {
         path:"/update"
     }
     resource inventoryUpdateResource (http:Connection con, http:InRequest req) {
-        endpoint<http:HttpClient> imsMbtEndpoint {
-            create http:HttpClient("http://localhost:8992", {});
-        }
-
-        endpoint<http:HttpClient> imsDlgEndpoint {
-            create http:HttpClient("http://localhost:8991", {});
+        endpoint<http:HttpClient> imsEndpoint {
+            create http:HttpClient("http://localhost:8891/ims-service", {});
         }
 
         json request = req.getJsonPayload();
 
         string brand;
         error castErr;
-        brand, castErr = (string)request["brand"];
 
-        route(brand);
-
-        if (castErr == null) {
-            io:println("Brand value: " + brand);
-        } else {
-            io:println("Couldn't read the brand: ");
-            io:println(castErr);
+        try {
+            brand, castErr = (string)request["brand"];
+        } catch (error e) {
+            e.message = "Request error. No brand found";
+            io:println(e);
+            throw e;
         }
+
+        io:println("Brand: " + brand);
+
         http:InResponse imsResp;
         http:HttpConnectorError conErr;
 
         http:OutResponse res = {};
 
-        if (brand == "mbt") {
-            imsResp, conErr = imsMbtEndpoint.post("/mbt/update", {});
-        } else {
-            imsResp, conErr = imsDlgEndpoint.post("/dlg/update", {});
-        }
+        imsResp, conErr = imsEndpoint.post(rule:route(brand), {});
 
         if (conErr == null) {
             io:println("Backend call success..!");
             io:println(imsResp);
             _ = con.forward(imsResp);
         } else {
-            io:print("Error connecting to backend. ");
+            io:print("Error in connecting to backend");
             io:println(conErr);
             res.statusCode = 500;
             res.setStringPayload(conErr.message);

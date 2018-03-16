@@ -1,1 +1,0 @@
-curl http://localhost:8890/ims/update -d '{"brand" : "mbt"}' -H "Content-Type:application/json" -v
